@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Directory Tree Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+
+  <script>
+    // 1) Leer preferencia guardada y fijar lang ANTES de cualquier render
+    (function() {
+      const saved = localStorage.getItem('DTG_LANG');
+      const initial = saved || document.documentElement.lang || 'en';
+      document.documentElement.lang = initial;
+      window.APP_LANG = initial;
+    })();
+  </script>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between">
+          <h3 class="mb-0" data-i18n="title">Directory Tree Generator</h3>
+          <div class="d-flex gap-2">
+            <a href="#" id="btnLangEn" class="btn btn-outline-light btn-sm" data-i18n="btn_english_title" title="Switch to English">English</a>
+            <a href="#" id="btnLangEs" class="btn btn-outline-light btn-sm" data-i18n="btn_spanish_title" title="Cambiar a Español">Español</a>
+            <button id="btnExample" class="btn btn-outline-light btn-sm" data-i18n="btn_example">Load example</button>
+            <button id="btnClear" class="btn btn-outline-light btn-sm" data-i18n="btn_clear">Clear</button>
+          </div>
+        </div>
+        <p class="help mt-2 mb-0" data-i18n="subtitle">
+          A file system tree structure generator to quickly model folders and files with drag-and-drop.
+        </p>
+      </div>
+
+      <div class="col-12 col-lg-7">
+        <div class="card p-3">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-auto d-flex gap-2 flex-wrap">
+              <button id="btnAddFolder" class="btn btn-soft" data-i18n="btn_add_folder_title" title="Add folder">📂 Folder</button>
+              <button id="btnAddSubfolder" class="btn btn-soft" data-i18n="btn_add_subfolder_title" title="Add subfolder at root">↳ Subfolder</button>
+              <button id="btnAddFile" class="btn btn-soft" data-i18n="btn_add_file_title" title="Add file">📄 File</button>
+              <button id="btnDelete" class="btn btn-outline-danger" data-i18n="btn_delete_title" title="Delete selected">🗑️ Delete</button>
+            </div>
+            <div class="col-12 col-md d-flex align-items-center gap-2">
+              <span class="help" data-i18n="quick_emoji">Quick emoji</span>
+              <select id="quickEmoji" class="form-select form-select-sm small-input">
+                <option value="">—</option>
+                <option>📂</option>
+                <option>📄</option>
+                <option>📝</option>
+                <option>🗃️</option>
+                <option>🗂️</option>
+                <option>📁</option>
+                <option>🧩</option>
+                <option>⚙️</option>
+                <option>🧪</option>
+                <option>🖼️</option>
+                <option>🎵</option>
+                <option>🎬</option>
+              </select>
+              <button id="btnSetEmoji" class="btn btn-soft btn-sm" data-i18n="btn_apply_emoji">Apply</button>
+              <div id="selectedInfo" class="ms-auto help">(root)</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="treeContainer" class="tree-vertical" aria-label="Folder tree (vertical)"></div>
+          <div id="rootDropZone" class="tree-vertical mb-2" aria-label="Drop here to move to root" style="display:none"></div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button id="btnExpandAll" class="btn btn-outline-light btn-sm" data-i18n="btn_expand_all">Expand all</button>
+            <button id="btnCollapseAll" class="btn btn-outline-light btn-sm" data-i18n="btn_collapse_all">Collapse all</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-white" data-i18n="output_title">Output (copy-ready)</h5>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="showEmojis" checked>
+              <label class="form-check-label text-white" for="showEmojis" data-i18n="show_emojis">Show emojis</label>
+            </div>
+          </div>
+          <p class="help mb-2" data-i18n="output_help">Tree-like text that you can paste anywhere.</p>
+          <textarea id="output" class="form-control monospace" rows="18" readonly></textarea>
+          <div class="d-flex gap-2 mt-3">
+            <button id="btnCopy" class="btn btn-soft" data-i18n="btn_copy">Copy</button>
+            <button id="btnRegenerate" class="btn btn-outline-light" data-i18n="btn_nothing">Nothing</button>
+          </div>
+          <p class="help mt-3" data-i18n="extra_emojis_label">Some extra emojis:</p>
+          <p class="help mb-0">
+            📁 📂 ⛓️‍💥 ⚖️ 📧 📩 ✉️ 📪 🚨 🔔 ℹ️ 📦 🗳️ 📥 📤 📨 📬 📎 📌 📍
+            ⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 🕹️ 🗜️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥
+            📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋
+            🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 🧾 💎 ⚖️ 🪜 🧰
+            🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🔩 ⚙️ 🗜️ ⚗️ 🧪 🧫 🧬 🔬 🔭 📡 💉 🩸 💊 🩹
+            🩼 🩺 🩻 🚪 🛗 🪞 🪟 🛏️ 🛋️ 🪑 🚽 🪠 🚿 🛁 🪤 🪒 🧴 🧷 🧹 🧺
+            🧻 🪣 🧼 🫧 🪥 🧽 🧯 🛒 🚬 ⚰️ 🪦 ⚱️ 🗿 🪧 🏺 🧿 🪬 🪮 🪯 👽
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 2) i18n del DOM estático (usa el lang decidido arriba) y wiring de botones de idioma
+    (function() {
+      const LANG = (window.APP_LANG || document.documentElement.lang || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
+      const I18N_UI = {
+        en: {
+          title: 'Directory Tree Generator',
+          btn_english_title: 'Switch to English',
+          btn_spanish_title: 'Switch to Spanish',
+          btn_example: 'Load example',
+          btn_clear: 'Clear',
+          subtitle: 'A file system tree structure generator to quickly model folders and files with drag-and-drop.',
+          btn_add_folder_title: 'Add folder',
+          btn_add_subfolder_title: 'Add subfolder at root',
+          btn_add_file_title: 'Add file',
+          btn_delete_title: 'Delete selected',
+          quick_emoji: 'Quick emoji',
+          btn_apply_emoji: 'Apply',
+          btn_expand_all: 'Expand all',
+          btn_collapse_all: 'Collapse all',
+          output_title: 'Output (copy-ready)',
+          show_emojis: 'Show emojis',
+          output_help: 'Tree-like text that you can paste anywhere.',
+          btn_copy: 'Copy',
+          btn_nothing: 'Nothing',
+          extra_emojis_label: 'Some extra emojis:'
+        },
+        es: {
+          title: 'Generador de Árbol de Directorios',
+          btn_english_title: 'Cambiar a Inglés',
+          btn_spanish_title: 'Cambiar a Español',
+          btn_example: 'Cargar ejemplo',
+          btn_clear: 'Limpiar',
+          subtitle: 'Generador de estructura tipo árbol para modelar carpetas y archivos con arrastrar y soltar.',
+          btn_add_folder_title: 'Agregar carpeta',
+          btn_add_subfolder_title: 'Agregar subcarpeta en la raíz',
+          btn_add_file_title: 'Agregar archivo',
+          btn_delete_title: 'Eliminar seleccionado',
+          quick_emoji: 'Emoji rápido',
+          btn_apply_emoji: 'Aplicar',
+          btn_expand_all: 'Expandir todo',
+          btn_collapse_all: 'Contraer todo',
+          output_title: 'Resultado (para copiar)',
+          show_emojis: 'Mostrar emojis',
+          output_help: 'Texto tipo tree, listo para pegar.',
+          btn_copy: 'Copiar',
+          btn_nothing: 'Nada jeje',
+          extra_emojis_label: 'Algunos emojis extra:'
+        }
+      };
+      const t = (k) => (I18N_UI[LANG] && I18N_UI[LANG][k]) || I18N_UI.en[k] || k;
+
+      // Traducción de elementos con data-i18n
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const txt = t(key);
+        if (txt) el.textContent = txt;
+      });
+
+      // Títulos de accesibilidad y etiquetas
+      const elAddFolder = document.getElementById('btnAddFolder');
+      const elAddSub = document.getElementById('btnAddSubfolder');
+      const elAddFile = document.getElementById('btnAddFile');
+      const elDel = document.getElementById('btnDelete');
+      if (elAddFolder) elAddFolder.title = t('btn_add_folder_title');
+      if (elAddSub) elAddSub.title = t('btn_add_subfolder_title');
+      if (elAddFile) elAddFile.title = t('btn_add_file_title');
+      if (elDel) elDel.title = t('btn_delete_title');
+
+      // Botones de idioma: guardar preferencia y recargar
+      const applyLang = (lang) => {
+        localStorage.setItem('DTG_LANG', lang);
+        document.documentElement.lang = lang;
+        window.APP_LANG = lang;
+        location.reload();
+      };
+      document.getElementById('btnLangEn')?.addEventListener('click', (e) => { e.preventDefault(); applyLang('en'); });
+      document.getElementById('btnLangEs')?.addEventListener('click', (e) => { e.preventDefault(); applyLang('es'); });
+
+      // Botones con emojis en el label
+      if (elAddFolder) elAddFolder.innerHTML = '📂 ' + (LANG === 'es' ? 'Carpeta' : 'Folder');
+      if (elAddSub) elAddSub.innerHTML = '↳ ' + (LANG === 'es' ? 'Subcarpeta' : 'Subfolder');
+      if (elAddFile) elAddFile.innerHTML = '📄 ' + (LANG === 'es' ? 'Archivo' : 'File');
+
+      // Selected info inicial
+      const selectedInfo = document.getElementById('selectedInfo');
+      if (selectedInfo) selectedInfo.textContent = LANG === 'es' ? '(raíz)' : '(root)';
+
+      // ARIA labels
+      const treeContainer = document.getElementById('treeContainer');
+      const rootDropZone = document.getElementById('rootDropZone');
+      if (treeContainer) treeContainer.setAttribute('aria-label', LANG === 'es' ? 'Árbol de carpetas (vertical)' : 'Folder tree (vertical)');
+      if (rootDropZone) rootDropZone.setAttribute('aria-label', LANG === 'es' ? 'Soltar aquí para mover a la raíz' : 'Drop here to move to root');
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

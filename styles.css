@@ -1,0 +1,25 @@
+body { background: #0f172a; color: #e2e8f0; }
+.card { background: #111827; border: 1px solid #1f2937; }
+.help { color: #94a3b8; }
+.monospace { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.btn-soft { background: #0b1220; border: 1px solid #1f2937; color: #e2e8f0; }
+.btn-soft:hover { background: #111827; }
+.btn-outline-light { border-color: #334155; color: #e2e8f0; }
+.btn-outline-light:hover { background: #1f2937; }
+.tree-vertical { max-height: 60vh; overflow: auto; padding: 8px; border-radius: 8px; background: #0b1220; border: 1px solid #1f2937; }
+.item { border: 1px solid #1f2937; border-radius: 8px; margin-bottom: 8px; background: #0f1628; }
+.item.drag-ghost { opacity: 0.35; }
+.item.drop-target { outline: 2px dashed #22c55e; }
+.item-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+.toggle-btn { min-width: 34px; }
+.emoji-input { width: 3.2rem; text-align: center; }
+.name-input { flex: 1; min-width: 120px; background: transparent; border: none; border-bottom: 1px dashed #334155; color: #e2e8f0; outline: none; }
+.type-badge { font-size: 0.7rem; background: #1f2937; color: #cbd5e1; }
+.controls { display: flex; gap: 6px; }
+.children { padding: 8px 10px 10px 46px; border-top: 1px solid #1f2937; }
+.divider { height: 1px; background: #1f2937; margin: 8px 0; }
+.small-input { width: 8rem; }
+.drag-handle { cursor: grab; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+.insert-before { box-shadow: 0 -2px 0 #22c55e inset; }
+.insert-after { box-shadow: 0 2px 0 #22c55e inset; }
