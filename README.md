@@ -35,7 +35,7 @@ Tip: Click “Load example” to populate a sample structure and explore the int
 ## 📁 Example of Usage
 Below is a sample structure you might generate with DTG and paste into documentation:
 
-``
+```
 📂 My_first_project/
 └── 📂 DTG_multi/
 ├── 📄 index.html
@@ -44,7 +44,7 @@ Below is a sample structure you might generate with DTG and paste into documenta
 📂 My_future_project/
 └── 📂 we_will_see/
 └── 📄 thankyou.txt
-``
+```
 
 ## 🛠️ Technical Details
 
