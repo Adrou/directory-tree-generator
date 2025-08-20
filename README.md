@@ -2,13 +2,13 @@
 
 A lightweight, single-file web app to model folder/file hierarchies with intuitive drag-and-drop, quick emoji labeling, and copy-ready tree output.
 
-- [Overview](#overview)
-- [👽 Features](#features)
+- [Overview](#-overview)
+- [👽 Features](#-features)
 - [⚡ Quick Start](#-quick-start)
 - [📁 Example of Usage](#-example-of-usage)
 - [💾 Technical Details](#-technical-details)
-- [🗿 Contributing](#contributing)
-- [🚬 License](#license)
+- [🗿 Contributing](#-contributing)
+- [🚬 License](#-license)
 - [🛸 Thank you](#-thank-you)
 
 ## Overview
