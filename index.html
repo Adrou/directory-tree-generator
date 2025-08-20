@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Directory Tree Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #0f172a; color: #e2e8f0; }
+    .card { background: #111827; border: 1px solid #1f2937; }
+    .help { color: #94a3b8; }
+    .monospace { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .btn-soft { background: #0b1220; border: 1px solid #1f2937; color: #e2e8f0; }
+    .btn-soft:hover { background: #111827; }
+    .btn-outline-light { border-color: #334155; color: #e2e8f0; }
+    .btn-outline-light:hover { background: #1f2937; }
+    .tree-vertical { max-height: 60vh; overflow: auto; padding: 8px; border-radius: 8px; background: #0b1220; border: 1px solid #1f2937; }
+    .item { border: 1px solid #1f2937; border-radius: 8px; margin-bottom: 8px; background: #0f1628; }
+    .item.drag-ghost { opacity: 0.35; }
+    .item.drop-target { outline: 2px dashed #22c55e; }
+    .item-header { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+    .toggle-btn { min-width: 34px; }
+    .emoji-input { width: 3.2rem; text-align: center; }
+    .name-input { flex: 1; min-width: 120px; background: transparent; border: none; border-bottom: 1px dashed #334155; color: #e2e8f0; outline: none; }
+    .type-badge { font-size: 0.7rem; background: #1f2937; color: #cbd5e1; }
+    .controls { display: flex; gap: 6px; }
+    .children { padding: 8px 10px 10px 46px; border-top: 1px solid #1f2937; }
+    .divider { height: 1px; background: #1f2937; margin: 8px 0; }
+    .small-input { width: 8rem; }
+    .drag-handle { cursor: grab; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    .insert-before { box-shadow: 0 -2px 0 #22c55e inset; }
+    .insert-after { box-shadow: 0 2px 0 #22c55e inset; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="d-flex align-items-center justify-content-between">
+          <h3 class="mb-0">Directory Tree Generator</h3>
+          <div class="d-flex gap-2">
+            <a href="index.html" class="btn btn-outline-light btn-sm" title="Switch to English">English</a>
+            <a href="index_es.html" class="btn btn-outline-light btn-sm" title="Cambiar a Español">Español</a>
+            <button id="btnExample" class="btn btn-outline-light btn-sm">Load example</button>
+            <button id="btnClear" class="btn btn-outline-light btn-sm">Clear</button>
+          </div>
+        </div>
+        <p class="help mt-2 mb-0">A file system tree structure generator to quickly model folders and files with drag-and-drop.</p>
+      </div>
+
+      <div class="col-12 col-lg-7">
+        <div class="card p-3">
+          <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-auto d-flex gap-2 flex-wrap">
+              <button id="btnAddFolder" class="btn btn-soft" title="Add folder">📂 Folder</button>
+              <button id="btnAddSubfolder" class="btn btn-soft" title="Add subfolder at root">↳ Subfolder</button>
+              <button id="btnAddFile" class="btn btn-soft" title="Add file">📄 File</button>
+              <button id="btnDelete" class="btn btn-outline-danger" title="Delete selected">🗑️ Delete</button>
+            </div>
+            <div class="col-12 col-md d-flex align-items-center gap-2">
+              <span class="help">Quick emoji</span>
+              <select id="quickEmoji" class="form-select form-select-sm small-input">
+                <option value="">—</option>
+                <option>📂</option>
+                <option>📄</option>
+                <option>📝</option>
+                <option>🗃️</option>
+                <option>🗂️</option>
+                <option>📁</option>
+                <option>🧩</option>
+                <option>⚙️</option>
+                <option>🧪</option>
+                <option>🖼️</option>
+                <option>🎵</option>
+                <option>🎬</option>
+              </select>
+              <button id="btnSetEmoji" class="btn btn-soft btn-sm">Apply</button>
+              <div id="selectedInfo" class="ms-auto help">Selected: (root)</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="treeContainer" class="tree-vertical" aria-label="Folder tree (vertical)"></div>
+          <div id="rootDropZone" class="tree-vertical mb-2" aria-label="Drop here to move to root" style="display:none"></div>
+
+          <div class="mt-3 d-flex gap-2">
+            <button id="btnExpandAll" class="btn btn-outline-light btn-sm">Expand all</button>
+            <button id="btnCollapseAll" class="btn btn-outline-light btn-sm">Collapse all</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-white">Output (copy-ready)</h5>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="showEmojis" checked>
+              <label class="form-check-label text-white" for="showEmojis">Show emojis</label>
+            </div>
+          </div>
+          <p class="help mb-2">Tree-like text that you can paste anywhere.</p>
+          <textarea id="output" class="form-control monospace" rows="18" readonly></textarea>
+          <div class="d-flex gap-2 mt-3">
+            <button id="btnCopy" class="btn btn-soft">Copy</button>
+            <button id="btnRegenerate" class="btn btn-outline-light">Nothing</button>
+          </div>
+          <p class="help mt-3">Some extra emojis: <br> 
+        📁	📂	⛓️‍💥	⚖️	📧	📩	✉️	📪	🚨	🔔	ℹ️	📦	🗳️	📥	📤	📨	📬	📎	📌	📍
+        ⌚	📱	📲	💻	⌨️	🖥️	🖨️	🖱️	🖲️	🕹️	🗜️	💽	💾	💿	📀	📼	📷	📸	📹	🎥
+        📽️	🎞️	📞	☎️	📟	📠	📺	📻	🎙️	🎚️	🎛️	🧭	⏱️	⏲️	⏰	🕰️	⌛	⏳	📡	🔋
+        🔌	💡	🔦	🕯️	🪔	🧯	🛢️	💸	💵	💴	💶	💷	🪙	💰	💳	🧾	💎	⚖️	🪜	🧰
+        🪛	🔧	🔨	⚒️	🛠️	⛏️	🔩	⚙️	🗜️	⚗️	🧪	🧫	🧬	🔬	🔭	📡	💉	🩸	💊	🩹
+        🩼	🩺	🩻	🚪	🛗	🪞	🪟	🛏️	🛋️	🪑	🚽	🪠	🚿	🛁	🪤	🪒	🧴	🧷	🧹	🧺
+        🧻	🪣	🧼	🫧	🪥	🧽	🧯	🛒	🚬	⚰️	🪦	⚱️	🗿	🪧	🏺	🧿	🪬	🪮	🪯	👽</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Virtual root (not rendered; holds top-level items)
+    let tree = {
+      id: idgen(),
+      type: 'folder',
+      name: '(virtual-root)',
+      emoji: '',
+      collapsed: false,
+      children: []
+    };
+    let selectedId = tree.id;
+
+    // Utils
+    function idgen(){ return 'n_' + Math.random().toString(36).slice(2,9); }
+    function findNodeAndParent(id, node = tree, parent = null) {
+      if (node.id === id) return { node, parent };
+      if (node.type === 'folder' && node.children) {
+        for (const ch of node.children) {
+          const res = findNodeAndParent(id, ch, node);
+          if (res) return res;
+        }
+      }
+      return null;
+    }
+    function forEachNode(fn, node = tree) {
+      fn(node);
+      if (node.type === 'folder' && node.children) node.children.forEach(c => forEachNode(fn, c));
+    }
+    function collapseAll(v){ forEachNode(n => { if (n.type==='folder') n.collapsed = v; }); render(); }
+
+    // Render
+    const treeContainer = document.getElementById('treeContainer');
+    const selectedInfo = document.getElementById('selectedInfo');
+
+    function render() {
+      treeContainer.innerHTML = '';
+      const topList = document.createElement('div');
+      topList.className = 'children';
+      // Allow dropping here to move at top-level
+      topList.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); });
+      topList.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const draggedId = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-node-id');
+        if (!draggedId) return;
+        const from = findNodeAndParent(draggedId);
+        if (!from || from.node.id === tree.id) return;
+        removeFromParent(from.node, from.parent);
+        tree.children = tree.children || [];
+        tree.children.push(from.node);
+        render();
+      });
+
+      (tree.children || []).forEach(ch => topList.appendChild(renderItem(ch)));
+      treeContainer.appendChild(topList);
+
+      const sel = findNodeAndParent(selectedId);
+      selectedInfo.textContent = 'Selected: ' + (sel ? describe(sel.node) : '(none)');
+      regenerateOutput();
+    }
+
+    function describe(n){
+      return `${n.emoji || ''} ${n.name} — ${n.type==='folder' ? 'Folder' : 'File'}`;
+    }
+
+    function renderItem(node) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'item';
+      wrapper.dataset.id = node.id;
+
+      // Selection on wrapper click (ignore inputs/buttons)
+      wrapper.addEventListener('click', (e) => {
+        if (e.target.closest('input,select,button,textarea')) return;
+        selectedId = node.id;
+        render();
+      });
+
+      // Drag start allowed from header/handle, not from inputs
+      wrapper.draggable = true;
+      wrapper.addEventListener('dragstart', (e) => {
+        const isFromInput = !!e.target.closest('input,select,textarea');
+        const isFromButton = !!e.target.closest('button');
+        const isFromHandle = !!e.target.closest('.drag-handle');
+        const isFromHeader = !!e.target.closest('.item-header');
+        if (isFromInput || (isFromButton && !isFromHandle) || !isFromHeader) {
+          e.preventDefault();
+          return;
+        }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', node.id);
+        try { e.dataTransfer.setData('application/x-node-id', node.id); } catch {}
+        setTimeout(() => wrapper.classList.add('drag-ghost'), 0);
+      });
+      wrapper.addEventListener('dragend', () => {
+        wrapper.classList.remove('drag-ghost');
+        wrapper.classList.remove('drop-target','insert-before','insert-after');
+      });
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'item-header';
+
+      // Toggle
+      const toggle = document.createElement('button');
+      toggle.className = 'btn btn-sm btn-outline-light toggle-btn';
+      toggle.textContent = node.type === 'folder' ? (node.collapsed ? '▶' : '▼') : '•';
+      toggle.title = node.type === 'folder' ? 'Expand/Collapse' : 'Item';
+      toggle.disabled = node.type !== 'folder';
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (node.type === 'folder') {
+          node.collapsed = !node.collapsed;
+          render();
+        }
+      });
+
+      // Type badge
+      const badge = document.createElement('span');
+      badge.className = 'badge type-badge';
+      badge.textContent = node.type === 'folder' ? 'folder' : 'file';
+
+      // Emoji
+      const emoji = document.createElement('input');
+      emoji.className = 'form-control form-control-sm emoji-input monospace';
+      emoji.placeholder = '😀';
+      emoji.value = node.emoji || '';
+      emoji.addEventListener('focus', () => { selectedId = node.id; selectedInfo.textContent = 'Selected: ' + describe(node); });
+      emoji.addEventListener('input', () => {
+        node.emoji = emoji.value;
+        regenerateOutput();
+      });
+
+      // Name
+      const name = document.createElement('input');
+      name.className = 'name-input monospace';
+      name.value = node.name;
+      name.addEventListener('focus', () => { selectedId = node.id; selectedInfo.textContent = 'Selected: ' + describe(node); });
+      name.addEventListener('input', () => {
+        node.name = name.value || (node.type === 'folder' ? 'folder' : 'file');
+        regenerateOutput();
+      });
+
+      // Drag handle
+      const dragHandle = document.createElement('button');
+      dragHandle.className = 'btn btn-sm btn-outline-light drag-handle';
+      dragHandle.title = 'Drag to move';
+      dragHandle.textContent = '⇕';
+      dragHandle.draggable = true;
+      dragHandle.addEventListener('dragstart', (e) => {
+        e.stopPropagation();
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', node.id);
+        try { e.dataTransfer.setData('application/x-node-id', node.id); } catch {}
+        requestAnimationFrame(() => wrapper.classList.add('drag-ghost'));
+      });
+      dragHandle.addEventListener('dragend', (e) => {
+        e.stopPropagation();
+        wrapper.classList.remove('drag-ghost');
+        wrapper.classList.remove('drop-target','insert-before','insert-after');
+      });
+
+      // Quick controls
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      if (node.type === 'folder') {
+        const addSub = document.createElement('button');
+        addSub.className = 'btn btn-soft btn-sm';
+        addSub.textContent = '↳ Subfolder';
+        addSub.title = 'Add subfolder';
+        addSub.addEventListener('click', (e) => {
+          e.stopPropagation();
+          node.children.push({
+            id: idgen(), type: 'folder', name: 'subfolder', emoji: '📂', collapsed: false, children: []
+          });
+          node.collapsed = false;
+          render();
+        });
+        const addFile = document.createElement('button');
+        addFile.className = 'btn btn-soft btn-sm';
+        addFile.textContent = '📄 File';
+        addFile.title = 'Add file';
+        addFile.addEventListener('click', (e) => {
+          e.stopPropagation();
+          node.children.push({ id: idgen(), type: 'file', name: 'new_file.txt', emoji: '📄' });
+          node.collapsed = false;
+          render();
+        });
+        controls.appendChild(addSub);
+        controls.appendChild(addFile);
+      }
+
+      // Delete
+      const del = document.createElement('button');
+      del.className = 'btn btn-outline-danger btn-sm';
+      del.textContent = '🗑️';
+      del.title = 'Delete';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fp = findNodeAndParent(node.id);
+        if (!fp) return;
+        if (!fp.parent) return;
+        const i = fp.parent.children.findIndex(c => c.id === node.id);
+        if (i >= 0) fp.parent.children.splice(i,1);
+        selectedId = fp.parent.id || tree.id;
+        render();
+      });
+
+      header.appendChild(toggle);
+      header.appendChild(badge);
+      header.appendChild(emoji);
+      header.appendChild(name);
+      header.appendChild(dragHandle);
+      header.appendChild(controls);
+      header.appendChild(del);
+
+      // DnD handlers (wrapper and children delegate to same handlers)
+      const onDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const host = wrapper;
+        const rect = host.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        const h = rect.height;
+        const before = offsetY < h * 0.25;
+        const after  = offsetY > h * 0.75;
+        host.classList.add('drop-target');
+        host.classList.toggle('insert-before', before);
+        host.classList.toggle('insert-after', after);
+      };
+
+      const onDragLeave = (e) => {
+        e.stopPropagation();
+        const host = wrapper;
+        host.classList.remove('drop-target','insert-before','insert-after');
+      };
+
+      const onDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const host = wrapper;
+        host.classList.remove('drop-target','insert-before','insert-after');
+
+        const draggedId = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-node-id');
+        if (!draggedId || draggedId === node.id) return;
+
+        const from = findNodeAndParent(draggedId);
+        if (!from) return;
+
+        // Prevent dropping a node into its own descendant
+        if (isAncestorOf(draggedId, node.id)) return;
+
+        // Compute drop zone
+        const rect = host.getBoundingClientRect();
+        const offsetY = e.clientY - rect.top;
+        const h = rect.height;
+        const before = offsetY < h * 0.25;
+        const after  = offsetY > h * 0.75;
+        const middle = !before && !after;
+
+        if (middle && node.type === 'folder') {
+          if (!node.children) node.children = [];
+          removeFromParent(from.node, from.parent);
+          node.children.push(from.node);
+          node.collapsed = false;
+          render();
+          return;
+        }
+
+        // Reorder relative to target in the same parent (or virtual root for top-level)
+        const toInfo = findNodeAndParent(node.id);
+        const toParent = toInfo.parent || tree;
+        removeFromParent(from.node, from.parent);
+        const idx = toParent.children.findIndex(c => c.id === node.id);
+        const insertIndex = before ? idx : (after ? idx + 1 : idx);
+        toParent.children.splice(insertIndex, 0, from.node);
+        render();
+      };
+
+      // Apply DnD handlers
+      wrapper.addEventListener('dragover', onDragOver);
+      wrapper.addEventListener('dragleave', onDragLeave);
+      wrapper.addEventListener('drop', onDrop);
+
+      // Also delegate from the header and inputs so dropping "over the name" works
+      header.addEventListener('dragover', onDragOver);
+      header.addEventListener('dragleave', onDragLeave);
+      header.addEventListener('drop', onDrop);
+
+      emoji.addEventListener('dragover', onDragOver);
+      emoji.addEventListener('dragleave', onDragLeave);
+      emoji.addEventListener('drop', onDrop);
+
+      name.addEventListener('dragover', onDragOver);
+      name.addEventListener('dragleave', onDragLeave);
+      name.addEventListener('drop', onDrop);
+
+      wrapper.appendChild(header);
+
+      // Children
+      if (node.type === 'folder' && node.children && !node.collapsed) {
+        const children = document.createElement('div');
+        children.className = 'children';
+        children.addEventListener('dragover', onDragOver);
+        children.addEventListener('dragleave', onDragLeave);
+        children.addEventListener('drop', onDrop);
+        node.children.forEach(ch => children.appendChild(renderItem(ch)));
+        wrapper.appendChild(children);
+      }
+
+      return wrapper;
+    }
+
+    function isAncestorOf(ancestorId, nodeId){
+      const f = findNodeAndParent(nodeId);
+      if (!f) return false;
+      let cur = f.parent;
+      while (cur) {
+        if (cur.id === ancestorId) return true;
+        const up = findNodeAndParent(cur.id);
+        cur = up ? up.parent : null;
+      }
+      return false;
+    }
+
+    function removeFromParent(node, parent){
+      if (!parent || !parent.children) return;
+      const i = parent.children.findIndex(c => c.id === node.id);
+      if (i >= 0) parent.children.splice(i,1);
+    }
+
+    // Top buttons: ALWAYS create at top-level (virtual root)
+    document.getElementById('btnAddFolder').addEventListener('click', () => {
+      tree.children = tree.children || [];
+      tree.children.push({ id: idgen(), type: 'folder', name: 'new_folder', emoji: '📂', collapsed: false, children: [] });
+      render();
+    });
+    document.getElementById('btnAddSubfolder').addEventListener('click', () => {
+      tree.children = tree.children || [];
+      tree.children.push({ id: idgen(), type: 'folder', name: 'subfolder', emoji: '📂', collapsed: false, children: [] });
+      render();
+    });
+    document.getElementById('btnAddFile').addEventListener('click', () => {
+      tree.children = tree.children || [];
+      tree.children.push({ id: idgen(), type: 'file', name: 'new_file.txt', emoji: '📄' });
+      render();
+    });
+
+    document.getElementById('btnDelete').addEventListener('click', () => {
+      if (selectedId === tree.id) return alert('Select an item to delete.');
+      const fp = findNodeAndParent(selectedId);
+      if (!fp) return;
+      removeFromParent(fp.node, fp.parent || tree);
+      selectedId = fp.parent?.id || tree.id;
+      render();
+    });
+    document.getElementById('btnExpandAll').addEventListener('click', () => collapseAll(false));
+    document.getElementById('btnCollapseAll').addEventListener('click', () => collapseAll(true));
+
+    document.getElementById('btnSetEmoji').addEventListener('click', () => {
+      const sel = findNodeAndParent(selectedId)?.node;
+      if (!sel) return;
+      const quick = document.getElementById('quickEmoji').value;
+      if (!quick) return;
+      sel.emoji = quick;
+      render();
+    });
+
+    document.getElementById('btnCopy').addEventListener('click', async () => {
+      const ta = document.getElementById('output');
+      ta.select();
+      try { await navigator.clipboard.writeText(ta.value); }
+      catch { document.execCommand('copy'); }
+    });
+
+    document.getElementById('btnRegenerate').addEventListener('click', regenerateOutput);
+    document.getElementById('showEmojis').addEventListener('change', regenerateOutput);
+    document.getElementById('btnClear').addEventListener('click', () => {
+      if (!confirm('Clear everything and start over?')) return;
+      tree = { id: idgen(), type: 'folder', name: '(virtual-root)', emoji: '', collapsed: false, children: [] };
+      selectedId = tree.id;
+      render();
+    });
+
+    document.getElementById('btnExample').addEventListener('click', () => {
+      tree = {
+        id: idgen(),
+        type: 'folder',
+        name: '(virtual-root)',
+        emoji: '',
+        collapsed: false,
+        children: [
+          { id: idgen(), type: 'folder', name: 'Root1', emoji: '📂', collapsed: false, children: [
+              { id: idgen(), type: 'file', name: 'readme.txt', emoji: '📄' },
+              { id: idgen(), type: 'folder', name: 'D2', emoji: '📂', collapsed: false, children: [
+                  { id: idgen(), type: 'file', name: 'note.txt', emoji: '📄' },
+              ]},
+              { id: idgen(), type: 'folder', name: 'Downloads', emoji: '📂', collapsed: false, children: [
+                  { id: idgen(), type: 'folder', name: 'D1', emoji: '📂', collapsed: false, children: [
+                      { id: idgen(), type: 'file', name: 'example.txt', emoji: '📄' },
+                  ]},
+              ]},
+              { id: idgen(), type: 'folder', name: 'Photos', emoji: '📂', collapsed: false, children: [
+                  { id: idgen(), type: 'file', name: 'photo2.jpg', emoji: '🖼️' },
+                  { id: idgen(), type: 'file', name: 'photo1.jpg', emoji: '🖼️' },
+              ]},
+              { id: idgen(), type: 'folder', name: 'Documents', emoji: '📂', collapsed: false, children: [] },
+          ]},
+          // Create another top-level "Root2" with the button 📂
+        ]
+      };
+      selectedId = tree.id;
+      render();
+    });
+
+    // Output as tree text: each top-level printed like a root
+    function generateTreeText(showEmojis = true) {
+      const lines = [];
+      function printRoot(n) {
+        let label = n.name;
+        if (n.type === 'folder' && !label.endsWith('/')) label += '/';
+        label = showEmojis ? `${n.emoji ? n.emoji + ' ' : ''}${label}` : label;
+        lines.push(label);
+      }
+      function walk(node, prefix = '', isLast = true) {
+        const tee = isLast ? '└── ' : '├── ';
+        let label = node.name;
+        if (node.type === 'folder' && !label.endsWith('/')) label += '/';
+        label = showEmojis ? `${node.emoji ? node.emoji + ' ' : ''}${label}` : label;
+        lines.push(prefix + tee + label);
+        if (node.type === 'folder' && node.children && node.children.length) {
+          const nextPrefix = prefix + (isLast ? '    ' : '│   ');
+          node.children.forEach((child, idx) => {
+            const last = idx === node.children.length - 1;
+            walk(child, nextPrefix, last);
+          });
+        }
+      }
+      const roots = tree.children || [];
+      roots.forEach((r) => {
+        printRoot(r);
+        if (r.type === 'folder' && r.children && r.children.length) {
+          r.children.forEach((child, cidx) => {
+            const last = cidx === r.children.length - 1;
+            walk(child, '', last);
+          });
+        }
+      });
+      return lines.join('\n');
+    }
+
+    function regenerateOutput(){
+      const show = document.getElementById('showEmojis').checked;
+
+      // Explicit zone to move to TOP-LEVEL
+      const rootDrop = document.getElementById('rootDropZone');
+      rootDrop.style.display = 'block';
+      rootDrop.textContent = 'Drag & drop here to move to TOP-LEVEL';
+      rootDrop.onDragOverHandler ||= ((e) => { e.preventDefault(); e.stopPropagation(); rootDrop.classList.add('drop-target'); });
+      rootDrop.onDragLeaveHandler ||= ((e) => { e.stopPropagation(); rootDrop.classList.remove('drop-target'); });
+      rootDrop.onDropHandler ||= ((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        rootDrop.classList.remove('drop-target');
+        const draggedId = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-node-id');
+        if (!draggedId) return;
+        const from = findNodeAndParent(draggedId);
+        if (!from || from.node.id === tree.id) return;
+        removeFromParent(from.node, from.parent);
+        tree.children = tree.children || [];
+        tree.children.push(from.node);
+        render();
+      });
+      rootDrop.addEventListener('dragover', rootDrop.onDragOverHandler);
+      rootDrop.addEventListener('dragleave', rootDrop.onDragLeaveHandler);
+      rootDrop.addEventListener('drop', rootDrop.onDropHandler);
+
+      document.getElementById('output').value = generateTreeText(show);
+    }
+
+    // Init
+    render();
+  </script>
+</body>
+</html>
