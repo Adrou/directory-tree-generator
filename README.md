@@ -7,16 +7,15 @@ A lightweight, single-file web app to model folder/file hierarchies with intuiti
 2. Features  
 3. ⚡ Quick Start  
 4. 📁 Example of Usage  
-5. 🛠️ Technical Details  
-6. Roadmap  
-7. Contributing  
-8. License  
-9. 🛸 Thank you
+5. 🛠️ Technical Details   
+6. Contributing  
+7. License  
+8. 🛸 Thank you
 
 ## Overview
 Directory Tree Generator helps you design and communicate folder structures quickly. Drag items to reorder or nest, add folders/files at the root with one click, and export a clean text tree. It’s ideal for documentation, onboarding, project planning, and teaching.
 
-## Features
+## 👽 Features
 - Drag-and-drop reordering and nesting with clear visual hints.  
 - Root-level “drop zone” for quickly moving items back to top level.  
 - Quick emoji picker to visually label folders and files.  
@@ -36,6 +35,7 @@ Tip: Click “Load example” to populate a sample structure and explore the int
 ## 📁 Example of Usage
 Below is a sample structure you might generate with DTG and paste into documentation:
 
+``
 📂 My_first_project/
 └── 📂 DTG_multi/
 ├── 📄 index.html
@@ -44,7 +44,7 @@ Below is a sample structure you might generate with DTG and paste into documenta
 📂 My_future_project/
 └── 📂 we_will_see/
 └── 📄 thankyou.txt
-
+``
 
 ## 🛠️ Technical Details
 
@@ -61,13 +61,6 @@ Below is a sample structure you might generate with DTG and paste into documenta
 - Controlled Drag Start: Drags begin from the item header or the dedicated handle to avoid accidental drags while editing text.  
 - Drop Zones: Insert before/after siblings or nest into folders (middle zone) with clear visual feedback.  
 - Output Generation: A single function regenerates the text tree and respects the “Show emojis” toggle.
-
-## Roadmap
-- Local persistence (save/load JSON).  
-- Import/export structures.  
-- Keyboard shortcuts for power users.  
-- Inline i18n toggling without page reload.  
-- Optional file-type icons via extension inference.
 
 ## Contributing
 Contributions are welcome! Please open an issue describing the enhancement or bug, then submit a PR with a concise description, test steps, and screenshots/GIFs where helpful.
